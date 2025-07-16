@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exercise Timer</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #f4f7fa;
+            margin: 0;
+            transition: background-color 0.3s ease;
+            color: #333;
+            padding: 20px; /* Add some padding for smaller screens */
+            box-sizing: border-box; /* Include padding in element's total width and height */
+        }
+        .container {
+            background-color: #ffffff;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            width: 100%; /* Make container full width on small screens */
+            max-width: 400px; /* Limit max width for larger screens */
+            box-sizing: border-box;
+        }
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 25px;
+            font-size: 1.8em; /* Adjust for mobile */
+        }
+        .timer-display {
+            font-size: 4.5em; /* Larger for better visibility */
+            font-weight: bold;
+            margin: 25px 0;
+            color: #3498db;
+            letter-spacing: 1px;
+        }
+        .controls label {
+            display: block;
+            margin-bottom: 10px;
+            color: #555;
+            font-weight: 600;
+            font-size: 0.95em;
+            text-align: left; /* Align labels to left */
+            width: fit-content; /* Make label fit content */
+            margin-left: auto;
+            margin-right: auto; /* Center block labels */
+        }
+        .controls input[type="number"] {
+            width: calc(100% - 20px); /* Adjust width for padding */
+            max-width: 120px; /* Keep reasonable size */
+            padding: 12px;
+            margin-bottom: 20px;
+            border: 1px solid #cce7ff;
+            border-radius: 8px;
+            font-size: 1.1em;
+            text-align: center;
+            box-sizing: border-box;
+            -moz-appearance: textfield; /* Remove arrows in Firefox */
+        }
+        .controls input[type="number"]::-webkit-outer-spin-button,
+        .controls input[type="number"]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0; /* Remove arrows in Chrome, Safari, Edge */
+        }
+        .buttons {
+            display: flex;
+            flex-wrap: wrap; /* Allow buttons to wrap on smaller screens */
+            justify-content: center;
+            gap: 10px; /* Space between buttons */
+            margin-top: 25px;
+        }
+        .buttons button {
+            flex-grow: 1; /* Allow buttons to grow to fill space */
+            min-width: 120px; /* Minimum width for buttons */
+            padding: 12px 18px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            transition: background-color 0.2s ease, transform 0.1s ease;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        .buttons button:active {
+            transform: translateY(1px);
+        }
+        .buttons button.start {
+            background-color: #28a745;
+            color: white;
+        }
+        .buttons button.start:hover {
+            background-color: #218838;
+        }
+        .buttons button.pause {
+            background-color: #ffc107;
+            color: #333;
+        }
+        .buttons button.pause:hover {
+            background-color: #e0a800;
+        }
+        .buttons button.reset {
+            background-color: #dc3545;
+            color: white;
+        }
+        .buttons button.reset:hover {
+            background-color: #c82333;
+        }
+        .rep-info {
+            font-size: 1.6em; /* Slightly larger */
+            margin-top: 25px;
+            color: #666;
+            font-weight: 500;
+        }
+        .flash {
+            background-color: #ffeb3b; /* Brighter yellow flash */
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 480px) {
+            .container {
+                padding: 15px;
+                margin: 10px;
+            }
+            h1 {
+                font-size: 1.5em;
+            }
+            .timer-display {
+                font-size: 3.5em;
+            }
+            .buttons button {
+                width: 100%; /* Stack buttons on very small screens */
+                margin: 5px 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Exercise Timer</h1>
+        <div class="controls">
+            <label for="exerciseDurationMinutes">Total Exercise Duration (minutes):</label>
+            <input type="number" id="exerciseDurationMinutes" value="5" min="1">
+
+            <label for="numReps">Number of Reps:</label>
+            <input type="number" id="numReps" value="10" min="1">
+        </div>
+        <div class="timer-display" id="timerDisplay">00:00</div>
+        <div class="rep-info" id="repInfo">Rep: 0 / 0</div>
+        <div class="buttons">
+            <button class="start" id="startButton">Start</button>
+            <button class="pause" id="pauseButton" disabled>Pause</button>
+            <button class="reset" id="resetButton" disabled>Reset</button>
+        </div>
+    </div>
+
+    <audio id="beepSound" src="https://www.soundjay.com/buttons/beep-01a.mp3" preload="auto"></audio>
+    <audio id="finishSound" src="https://www.soundjay.com/buttons/beep-07.mp3" preload="auto"></audio>
+
+    <script>
+        const exerciseDurationMinutesInput = document.getElementById('exerciseDurationMinutes');
+        const numRepsInput = document.getElementById('numReps');
+        const timerDisplay = document.getElementById('timerDisplay');
+        const repInfo = document.getElementById('repInfo');
+        const startButton = document.getElementById('startButton');
+        const pauseButton = document.getElementById('pauseButton');
+        const resetButton = document.getElementById('resetButton');
+        const beepSound = document.getElementById('beepSound');
+        const finishSound = document.getElementById('finishSound');
+        const body = document.body;
+
+        let timer;
+        let isRunning = false;
+        let currentRep = 0;
+        let timeLeft = 0;
+        let totalReps = 0;
+        let repIntervalDuration = 0; // Duration of each rep interval
+        let originalTitle = document.title;
+
+        function formatTime(seconds) {
+            const minutes = Math.floor(seconds / 60);
+            const remainingSeconds = seconds % 60;
+            return `${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
+        }
+
+        function updateDisplay() {
+            timerDisplay.textContent = formatTime(timeLeft);
+            repInfo.textContent = `Rep: ${currentRep} / ${totalReps}`;
+            document.title = `${formatTime(timeLeft)} - Rep ${currentRep} - Exercise Timer`;
+        }
+
+        function playSoundAndFlash() {
+            // Only play beep sound if it's not the very first rep (to avoid double sound at start)
+            if (currentRep > 1 || timeLeft < repIntervalDuration) {
+                beepSound.currentTime = 0; // Rewind to start for quick successive plays
+                beepSound.play();
+            }
+            body.classList.add('flash');
+            setTimeout(() => {
+                body.classList.remove('flash');
+            }, 300); // Flash for 300ms
+        }
+
+        function startTimer() {
+            if (isRunning) return;
+
+            const totalExerciseMinutes = parseInt(exerciseDurationMinutesInput.value);
+            totalReps = parseInt(numRepsInput.value);
+
+            if (totalExerciseMinutes < 1 || totalReps < 1) {
+                alert("Please ensure Total Exercise Duration is at least 1 minute and Number of Reps is at least 1.");
+                return;
+            }
+
+            // Calculate duration for each rep interval
+            repIntervalDuration = Math.floor((totalExerciseMinutes * 60) / totalReps);
+
+            if (repIntervalDuration <= 0) {
+                alert("Calculated time per rep is too short. Please increase total duration or decrease reps.");
+                return;
+            }
+
+            // Initialize for the first rep if starting fresh
+            if (currentRep === 0) {
+                currentRep = 1;
+                timeLeft = repIntervalDuration;
+            }
+
+            isRunning = true;
+            startButton.disabled = true;
+            pauseButton.disabled = false;
+            resetButton.disabled = false;
+            exerciseDurationMinutesInput.disabled = true;
+            numRepsInput.disabled = true;
+
+            updateDisplay();
+            // Play sound and flash for the very first rep when starting
+            if (currentRep === 1 && timeLeft === repIntervalDuration) {
+                 playSoundAndFlash();
+            }
+
+
+            timer = setInterval(() => {
+                timeLeft--;
+                updateDisplay();
+
+                if (timeLeft <= 0) {
+                    if (currentRep < totalReps) {
+                        playSoundAndFlash();
+                        currentRep++;
+                        timeLeft = repIntervalDuration; // Start next rep interval
+                    } else {
+                        // Last rep finished
+                        clearInterval(timer);
+                        finishSound.play();
+                        alert("Workout Finished!");
+                        resetTimer();
+                        return;
+                    }
+                    updateDisplay();
+                }
+            }, 1000);
+        }
+
+        function pauseTimer() {
+            clearInterval(timer);
+            isRunning = false;
+            startButton.disabled = false;
+            pauseButton.disabled = true;
+            document.title = originalTitle;
+        }
+
+        function resetTimer() {
+            clearInterval(timer);
+            isRunning = false;
+            currentRep = 0;
+            timeLeft = 0;
+            totalReps = 0;
+            repIntervalDuration = 0;
+            updateDisplay();
+            startButton.disabled = false;
+            pauseButton.disabled = true;
+            resetButton.disabled = true;
+            exerciseDurationMinutesInput.disabled = false;
+            numRepsInput.disabled = false;
+            document.title = originalTitle;
+        }
+
+        startButton.addEventListener('click', startTimer);
+        pauseButton.addEventListener('click', pauseTimer);
+        resetButton.addEventListener('click', resetTimer);
+
+        // Initial display setup
+        resetTimer();
+
+    </script>
+</body>
+</html>
