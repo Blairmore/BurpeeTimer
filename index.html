@@ -62,6 +62,7 @@
             font-size: 1.1em;
             text-align: center;
             box-sizing: border-box;
+            appearance: textfield; /* Remove arrows in modern browsers */
             -moz-appearance: textfield; /* Remove arrows in Firefox */
         }
         .controls input[type="number"]::-webkit-outer-spin-button,
@@ -146,7 +147,7 @@
         <h1>Exercise Timer</h1>
         <div class="controls">
             <label for="exerciseDurationMinutes">Total Exercise Duration (minutes):</label>
-            <input type="number" id="exerciseDurationMinutes" value="5" min="1">
+            <input type="number" id="exerciseDurationMinutes" value="20" min="1">
 
             <label for="numReps">Number of Reps:</label>
             <input type="number" id="numReps" value="10" min="1">
@@ -160,8 +161,7 @@
         </div>
     </div>
 
-    <audio id="beepSound" src="https://www.soundjay.com/buttons/beep-01a.mp3" preload="auto"></audio>
-    <audio id="finishSound" src="https://www.soundjay.com/buttons/beep-07.mp3" preload="auto"></audio>
+    <!-- Audio elements removed - using Web Audio API instead -->
 
     <script>
         const exerciseDurationMinutesInput = document.getElementById('exerciseDurationMinutes');
@@ -171,9 +171,37 @@
         const startButton = document.getElementById('startButton');
         const pauseButton = document.getElementById('pauseButton');
         const resetButton = document.getElementById('resetButton');
-        const beepSound = document.getElementById('beepSound');
-        const finishSound = document.getElementById('finishSound');
         const body = document.body;
+
+        // Create audio context for beep sounds
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        
+        function createBeep(frequency = 800, duration = 200) {
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.value = frequency;
+            oscillator.type = 'sine';
+            
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration / 1000);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + duration / 1000);
+        }
+        
+        function playBeepSound() {
+            createBeep(800, 200); // Standard beep
+        }
+        
+        function playFinishSound() {
+            createBeep(600, 100); // Lower pitch for finish
+            setTimeout(() => createBeep(800, 100), 100);
+            setTimeout(() => createBeep(1000, 200), 200);
+        }
 
         let timer;
         let isRunning = false;
@@ -198,8 +226,7 @@
         function playSoundAndFlash() {
             // Only play beep sound if it's not the very first rep (to avoid double sound at start)
             if (currentRep > 1 || timeLeft < repIntervalDuration) {
-                beepSound.currentTime = 0; // Rewind to start for quick successive plays
-                beepSound.play();
+                playBeepSound();
             }
             body.classList.add('flash');
             setTimeout(() => {
@@ -258,7 +285,7 @@
                     } else {
                         // Last rep finished
                         clearInterval(timer);
-                        finishSound.play();
+                        playFinishSound();
                         alert("Workout Finished!");
                         resetTimer();
                         return;
