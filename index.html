@@ -176,7 +176,7 @@
         // Create audio context for beep sounds
         const audioContext = new (window.AudioContext || window.webkitAudioContext)();
         
-        function createBeep(frequency = 800, duration = 200) {
+        function createBeep(frequency = 1000, duration = 300) {
             const oscillator = audioContext.createOscillator();
             const gainNode = audioContext.createGain();
             
@@ -184,9 +184,9 @@
             gainNode.connect(audioContext.destination);
             
             oscillator.frequency.value = frequency;
-            oscillator.type = 'sine';
+            oscillator.type = 'square'; // Changed to square wave for more noticeable sound
             
-            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.setValueAtTime(0.6, audioContext.currentTime); // Increased volume from 0.3 to 0.6
             gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration / 1000);
             
             oscillator.start(audioContext.currentTime);
@@ -194,13 +194,13 @@
         }
         
         function playBeepSound() {
-            createBeep(800, 200); // Standard beep
+            createBeep(1000, 300); // Higher frequency and longer duration for more noticeable beep
         }
         
         function playFinishSound() {
-            createBeep(600, 100); // Lower pitch for finish
-            setTimeout(() => createBeep(800, 100), 100);
-            setTimeout(() => createBeep(1000, 200), 200);
+            createBeep(800, 200); // First beep
+            setTimeout(() => createBeep(1000, 200), 200); // Second beep
+            setTimeout(() => createBeep(1200, 300), 400); // Third beep - higher pitch and longer
         }
 
         let timer;
